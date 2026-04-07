@@ -103,7 +103,6 @@
 </div>
 
 <script>
-    // FIXED URL: 'gemini' instead of 'qemini'
     const WORKER_URL = "https://gemini-diet-proxy.kuldeepverma8529.workers.dev/";
 
     // --- Authentication Logic ---
@@ -223,7 +222,6 @@
                 })
             });
 
-            // Handle text responses (like 404 errors) safely before trying to parse JSON
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") === -1) {
                 throw new Error("Server returned an invalid format. Please check your WORKER_URL.");
@@ -231,7 +229,6 @@
 
             const data = await response.json();
 
-            // Handle Unauthorized error (Wrong Passcode)
             if (response.status === 401) {
                 lockApp();
                 document.getElementById('auth-error').innerText = "Passcode changed or invalid. Please re-enter.";
@@ -239,7 +236,10 @@
                 throw new Error("Unauthorized access.");
             }
 
-            if (!response.ok) throw new Error(data.error || "API Error");
+            if (!response.ok) {
+                const apiErrorMessage = data.error?.message || (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) || `HTTP Error ${response.status}`;
+                throw new Error(apiErrorMessage);
+            }
 
             let aiText = data.candidates[0].content.parts[0].text;
             const jsonMatch = aiText.match(/\{[\s\S]*\}/);
@@ -268,7 +268,6 @@
 
         } catch (error) {
             console.error("Tracker Logic Error:", error);
-            // FIXED: This prevents the [object Object] error by safely converting errors to text
             const displayMessage = error.message || (typeof error === 'object' ? JSON.stringify(error) : error) || "Unknown Error";
             errorMsg.innerText = `Error: ${displayMessage}`;
             errorMsg.style.display = 'block';
@@ -278,7 +277,6 @@
         }
     }
 
-    // Unchanged helper functions
     function removeFood(mealId, foodId) { dailyData[mealId] = dailyData[mealId].filter(food => food.id !== foodId); saveAndRender(); }
     function updateWater(change) { waterCount = Math.max(0, waterCount + change); document.getElementById('water-display').innerText = waterCount; localStorage.setItem('waterTracker', waterCount); }
     function resetDay() {
